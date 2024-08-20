@@ -15,9 +15,9 @@ using LinearAlgebra
 
 
 """
-  KFState{V, M}
+    KFState{V, M}
 
-A type for the Kalman Filter State, which is parameterized by the types of the mean estimate and the upper triangular cholesky component of the Kalman State.
+A type for the Kalman Filter State, which is parameterized by the types of the mean estimate and the upper triangular cholesky component of the covariance matrix.
 """
 struct KFState{V, M}
   μ::V # mean estimate of the kalman filter
@@ -29,7 +29,7 @@ end
 #######################p
 
 """
-  KFState(μ, Σ)
+    KFState(μ, Σ)
 
 A constructor for the Kalman Filter State, which is parameterized by the mean estimate and the covariance matrix.
 """
@@ -38,7 +38,7 @@ function KFState(; μ, Σ)
 end
 
 """
-  μ(s::S) where {S <: KFState}
+    μ(s::S) where {S <: KFState}
 Get the mean estimate of the Kalman Filter State.
 """
 function μ(s::S) where {S <: KFState}
@@ -46,7 +46,7 @@ function μ(s::S) where {S <: KFState}
 end
 
 """
-  Σ(s::S) where {S <: KFState}
+    Σ(s::S) where {S <: KFState}
 Get the covariance matrix of the Kalman Filter State.
 """
 function Σ(s::S) where {S <: KFState}
@@ -54,7 +54,7 @@ function Σ(s::S) where {S <: KFState}
 end
 
 """
-  σ(s::S) where {S <: KFState}
+    σ(s::S) where {S <: KFState}
 Get a vector of the standard deviation of the Kalman Filter State
 """
 function σ(s::S) where {S <: KFState}
@@ -66,13 +66,16 @@ end
 ##################
 
 """
-  s_{k+1} = kalman_filter(s_k, y_kp1, u_k, A, B, C, V, W)
+    s_{k+1} = kalman_filter(s_k, y_{k+1}, u_k, A, B, C, V, W)
 
 Runs both the prediction and the correction steps. Assumes a system model
 ```math
-  x_{k+1} = A x_k + B u_k + w, where w ∼ \\mathcal{N}(0, W)
-  y_k = C x_k + v, v ∼ \\mathcal{N}(0, V)
+  \\begin{align}
+  x_{k+1} &= A x_k + B u_k + w, \\\\
+  y_k &= C x_k + v
+  \\end{align}
 ```
+where ``w ∼ \\mathcal{N}(0, W)``, ``v ∼ \\mathcal{N}(0, V)``.
 """
 function kalman_filter(s_k::S, y_kp1, u_k, A, B, C, V, W) where {S <: KFState}
 
@@ -83,13 +86,13 @@ function kalman_filter(s_k::S, y_kp1, u_k, A, B, C, V, W) where {S <: KFState}
 end
 
 """
-  s_{k+1|k} = predict(s_{k|k}, A, W)
+    s_{k+1|k} = predict(s_{k|k}, A, W)
 
 Uses the system model
 ```math
-  x_{k+1} = A x_k + w, where w ∼ N(0, W)
+  x_{k+1} = A x_k + w
 ```
-to predict the next state.
+where ``w ∼ N(0, W)`` to predict the next state.
 """
 function predict(s::S, A, W) where {S <: KFState}
 
@@ -104,13 +107,13 @@ function predict(s::S, A, W) where {S <: KFState}
 end
 
 """
-  s_{k+1} = predict(s_k, A, B, u_k, W)
+      s_{k+1} = predict(s_k, A, B, u_k, W)
 
 Uses the system model
 ```math
-  x_{k+1} = A x_k + B u_k  + w, where w ∼ N(0, W)
+  x_{k+1} = A x_k + B u_k  + w
 ```
-to predict the next state.
+where ``w ∼ \\mathcal{N}(0, W)`` to predict the next state.
 """
 function predict(s::S, A, B, u, W) where {S <: KFState}
 
@@ -126,13 +129,13 @@ end
 
 
 """
-  s_{k+1|k+1} = correct(s_{k+1|k}, y_{k+1}, C, V)
+    s_{k+1|k+1} = correct(s_{k+1|k}, y_{k+1}, C, V)
 
 Uses the system model
 ```math
-y_{k+1} = C x_{k+1} + v, v ∼ N(0, V)
+y_{k+1} = C x_{k+1} + v
 ```
-to correct the predicted state.
+where ``v \\sim \\mathcal{N}(0, V)`` to correct the predicted state.
 """
 function correct(s::S, y, C, V) where {S <: KFState}
 
@@ -164,22 +167,23 @@ end
 ##############
 
 """
-  U = chol_sqrt(A)
-returns an upper-triangular matrix U such that A = U' * U
+    U = chol_sqrt(A)
+
+returns an upper-triangular matrix ``U`` such that ``A = U^T U``.
 """
 function chol_sqrt(A)
   return cholesky(A).U
 end
 
 """
-  R = qrr(sqrtA, sqrtB)
+    R = qrr(A, B)
 
 returns 
 ```math
-R = \\sqrt{A + B}
+R = \\sqrt{A^TA + B^TB}
 ```
-where A = sqrt(A)' * sqrtA, and B = sqrtB' * sqrtB.
-The result is an UpperTriangular matrix.
+
+The result is an `UpperTriangular` matrix.
 """
 function qrr(sqrtA, sqrtB)
 
@@ -196,8 +200,6 @@ function qrr!(A)
   return UpperTriangular(A[1:N, 1:N])
 end
 
-
-
 function kalman_gain(s::S, C, Γv) where {S <: KFState}
 
   G = qrr(s.F * C', Γv)
@@ -210,7 +212,10 @@ end
 
 
 """
-add a fast method for diagonal of a cholesky matrix. 
+    diag(M::Cholesky)
+
+is a fast method for getting the diagonal of a cholesky matrix.
+
 This will eventually be included into the Julia standard library. 
 https://github.com/JuliaLang/julia/pull/53767
 """

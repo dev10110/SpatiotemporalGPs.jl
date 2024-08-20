@@ -1,3 +1,5 @@
+push!(LOAD_PATH,"../")
+
 using SpatiotemporalGPs
 using Documenter
 
@@ -14,6 +16,11 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Kalman Filters" => "kf.md",
+        "API" => [
+            "Kalman Filters" => "api/kf.md",
+            "STGPKF" => "api/stgpkf.md",
+        ]
     ],
 )
 
