@@ -21,7 +21,7 @@ end
     for N=1:5
         x = @SVector randn(N)
         sqrtP = @SMatrix randn(N, N)
-        P = sqrtP * sqrtP' + I
+        P = sqrtP' * sqrtP + I
         s = KFState(μ=x, Σ=P)
 
         @test μ(s) ≈ x
