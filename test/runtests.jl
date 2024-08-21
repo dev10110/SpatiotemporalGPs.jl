@@ -5,7 +5,7 @@ using LinearAlgebra
 using StaticArrays
 
 @testset "SpatiotemporalGPs.jl" begin
-    
+
 end
 
 include("tests/kf.jl")

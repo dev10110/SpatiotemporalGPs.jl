@@ -17,15 +17,15 @@ where ``w \sim \mathcal{N}(0, W)``, ``v \sim \mathcal{N}(0, V)``.
 To initialize the KF, 
 
 ```julia
-s_0_0 = KFState(μ, P) # estimated state at time k=0
+s_0_0 = KFState(μ=μ, Σ=P) # estimated state at time k=0
 ```
 which creates an `KFState` with mean ``μ`` and covariance ``P``. Pass in the full matrix here.
 
 To get the mean, covariance, or marginal standard deviations
 ```julia
-  μ(s) # returns the mean
-  Σ(s) # returns the full covariance matrix
-  σ(s) # returns the sqrt of the diagonal of the covariance matrix
+μ(s) # returns the mean
+Σ(s) # returns the full covariance matrix
+σ(s) # returns the sqrt of the diagonal of the covariance matrix
 ```
 
 ### Predicting and Correcting

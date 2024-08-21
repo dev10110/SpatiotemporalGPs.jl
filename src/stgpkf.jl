@@ -6,6 +6,4 @@ using StaticArrays
 
 include("kernels.jl")
 
-export Matern, kernel_matrix
-
 end

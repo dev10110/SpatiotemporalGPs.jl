@@ -8,8 +8,8 @@ using StaticArrays
 
     # try the diagonal case 
     x = [1.0, 2.0]
-    P = diagm([1.0, 5.0]) 
-    s = KFState(μ=x, Σ=P)
+    P = diagm([1.0, 5.0])
+    s = KFState(μ = x, Σ = P)
 
     @test μ(s) ≈ x
     @test Matrix(Σ(s)) ≈ P
@@ -18,12 +18,12 @@ end
 
 @testset "KalmanFilter - create Vectors" begin
 
-    for N=1:15
+    for N = 1:15
         x = randn(N)
         sqrtP = randn(N, N)
         P = sqrtP' * sqrtP + I
 
-        s = KFState(μ=x, Σ=P)
+        s = KFState(μ = x, Σ = P)
 
         @test μ(s) ≈ x
         @test Matrix(Σ(s)) ≈ P
@@ -37,23 +37,23 @@ end
     sqrtP = randn(N, N)
     P1 = -(sqrtP' * sqrtP + I) # definetely a negative definite matrix
 
-    @test_throws PosDefException  KFState(μ=x, Σ=P1)
+    @test_throws PosDefException KFState(μ = x, Σ = P1)
 
-    P2 = diagm([1,1,1,1,0.0]) # not positive definite
-    @test_throws PosDefException  KFState(μ=x, Σ=P2) 
+    P2 = diagm([1, 1, 1, 1, 0.0]) # not positive definite
+    @test_throws PosDefException KFState(μ = x, Σ = P2)
 
-    P3 = diagm([1,1,1,1,-1.]) # not positive definite
-    @test_throws PosDefException  KFState(μ=x, Σ=P3) 
+    P3 = diagm([1, 1, 1, 1, -1.0]) # not positive definite
+    @test_throws PosDefException KFState(μ = x, Σ = P3)
 end
 
 @testset "KalmanFilter - create SVectors" begin
 
-    for N=1:5
+    for N = 1:5
         x = @SVector randn(N)
         sqrtP = @SMatrix randn(N, N)
         P = sqrtP' * sqrtP + I
 
-        s = KFState(μ=x, Σ=P)
+        s = KFState(μ = x, Σ = P)
 
         @test μ(s) ≈ x
         @test Matrix(Σ(s)) ≈ P
@@ -65,15 +65,15 @@ end
 
 @testset "KalmanFilter - predict" begin
 
-    N = 4 
-    
+    N = 4
+
     x = randn(N)
-    sqrtP =  randn(N, N)
+    sqrtP = randn(N, N)
     P = sqrtP * sqrtP' + I
-    s = KFState(μ=x, Σ=P)
+    s = KFState(μ = x, Σ = P)
 
     # dynamics (integrator)
-    A =  [ [zeros(N-1) ;; I(N-1)]; zeros(N)' ]
+    A = [[zeros(N - 1);; I(N - 1)]; zeros(N)']
     dt = 0.1
     Ad = exp(A * dt) # convert to discrete time
 
@@ -86,7 +86,7 @@ end
 
     # test
     P_new = Ad * P * Ad' + W
-    @test μ(s_new) ≈ Ad*x
+    @test μ(s_new) ≈ Ad * x
     @test Matrix(Σ(s_new)) ≈ P_new
     @test σ(s_new) ≈ sqrt.(diag(P_new))
 end
@@ -95,11 +95,11 @@ end
 
     N = 4 # number of states
     M = 2 # number of measurements
-    
+
     x = randn(N)
-    sqrtP =  randn(N, N)
+    sqrtP = randn(N, N)
     P = sqrtP * sqrtP' + I
-    s = KFState(μ=x, Σ=P)
+    s = KFState(μ = x, Σ = P)
 
     # measurement matrix
     C = randn(M, N)
@@ -109,15 +109,15 @@ end
     V = sqrtV * sqrtV' + I
 
     # create a measurement
-    y = C*x + randn(M)
+    y = C * x + randn(M)
 
     # run the correction
     s_new = correct(s, y, C, V)
 
     # test
-    K = P*C' * inv(C*P*C' + V)
-    P_new = (I - K*C)*P
-    @test μ(s_new) ≈ x + K*(y - C*x)
+    K = P * C' * inv(C * P * C' + V)
+    P_new = (I - K * C) * P
+    @test μ(s_new) ≈ x + K * (y - C * x)
     @test Matrix(Σ(s_new)) ≈ P_new
     @test σ(s_new) ≈ sqrt.(diag(P_new))
 end
