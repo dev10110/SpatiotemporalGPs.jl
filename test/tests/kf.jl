@@ -16,12 +16,43 @@ using StaticArrays
     @test σ(s) ≈ sqrt.(diag(P))
 end
 
+@testset "KalmanFilter - create Vectors" begin
+
+    for N=1:15
+        x = randn(N)
+        sqrtP = randn(N, N)
+        P = sqrtP' * sqrtP + I
+
+        s = KFState(μ=x, Σ=P)
+
+        @test μ(s) ≈ x
+        @test Matrix(Σ(s)) ≈ P
+        @test σ(s) ≈ sqrt.(diag(P))
+    end
+end
+
+@testset "KalmanFilter - throws PosDef" begin
+    N = 5
+    x = randn(N)
+    sqrtP = randn(N, N)
+    P1 = -(sqrtP' * sqrtP + I) # definetely a negative definite matrix
+
+    @test_throws PosDefException  KFState(μ=x, Σ=P1)
+
+    P2 = diagm([1,1,1,1,0.0]) # not positive definite
+    @test_throws PosDefException  KFState(μ=x, Σ=P2) 
+
+    P3 = diagm([1,1,1,1,-1.]) # not positive definite
+    @test_throws PosDefException  KFState(μ=x, Σ=P3) 
+end
+
 @testset "KalmanFilter - create SVectors" begin
 
     for N=1:5
         x = @SVector randn(N)
         sqrtP = @SMatrix randn(N, N)
         P = sqrtP' * sqrtP + I
+
         s = KFState(μ=x, Σ=P)
 
         @test μ(s) ≈ x
@@ -34,7 +65,7 @@ end
 
 @testset "KalmanFilter - predict" begin
 
-    N = 4 # number of states
+    N = 4 
     
     x = randn(N)
     sqrtP =  randn(N, N)

@@ -19,22 +19,24 @@ using LinearAlgebra
 
 A type for the Kalman Filter State, which is parameterized by the types of the mean estimate and the upper triangular cholesky component of the covariance matrix.
 """
-struct KFState{V, M}
+struct KFState{T, V<:AbstractVector{T}, M, U <: UpperTriangular{T, M}}
   μ::V # mean estimate of the kalman filter
-  F::M # upper triangular cholesky component of the Kalman State
+  F::U # upper triangular cholesky component of the Kalman State
 end
 
 #######################
 ## Getters and Setters
-#######################p
+#######################
 
 """
-    KFState(μ, Σ)
+    KFState(; μ, Σ, make_symmetric=true)
 
 A constructor for the Kalman Filter State, which is parameterized by the mean estimate and the covariance matrix.
+If `make_symmetric` is true, the covariance matrix is made symmetric internally. This is useful for numerical stability.
 """
-function KFState(; μ, Σ)
-  return KFState(μ, chol_sqrt(Σ))
+function KFState(; μ, Σ, make_symmetric=true)
+  Γ = make_symmetric ? chol_sqrt(Symmetric(Σ)) : chol_sqrt(Σ)
+  return KFState(μ, Γ)
 end
 
 """
@@ -196,7 +198,7 @@ end
 
 function qrr!(A)
   N = minimum(size(A))
-  LinearAlgebra.LAPACK.geqrf!(A)
+  LinearAlgebra.LAPACK.geqrf!(A) # TODO(dev): do this but use generic Julia rather than LAPACK
   return UpperTriangular(A[1:N, 1:N])
 end
 
