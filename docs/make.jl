@@ -7,7 +7,7 @@ DocMeta.setdocmeta!(
     SpatiotemporalGPs,
     :DocTestSetup,
     :(using SpatiotemporalGPs);
-    recursive = true,
+    recursive = true
 )
 
 makedocs(;
@@ -17,13 +17,17 @@ makedocs(;
     format = Documenter.HTML(;
         canonical = "https://dev10110.github.io/SpatiotemporalGPs.jl",
         edit_link = "main",
-        assets = String[],
+        assets = String[]
     ),
     pages = [
         "Home" => "index.md",
         "Kalman Filters" => "kf.md",
-        "API" => ["Kalman Filters" => "api/kf.md", "STGPKF" => "api/stgpkf.md"],
-    ],
+        "STGPKF" => "stgpkf.md",
+        "API" => [
+            "Kalman Filters" => "api/kf.md",
+            "STGPKF" => "api/stgpkf.md"
+        ]
+    ]
 )
 
 deploydocs(; repo = "github.com/dev10110/SpatiotemporalGPs.jl", devbranch = "main")

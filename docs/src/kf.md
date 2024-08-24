@@ -1,17 +1,35 @@
-# Kalman Filtering
+# (Normal) Kalman Filtering
 
 This module provides an efficient and computationally stable method of computing and propagating a Kalman Filter estimate. 
+This module assumes a linear discrete time system. It can be a time-varying system. 
 
 The system model is 
 
 ```math
-\begin{align}
+\begin{align*}
   x_{k+1} &= A x_k + B u_k + w,\\
   y_k &= C x_k + v
-  \end{align}
+  \end{align*}
 ```
 where ``w \sim \mathcal{N}(0, W)``, ``v \sim \mathcal{N}(0, V)``.
 
+
+Given ``x_{k} \sim \mathcal{N}(\mu_{k|k}, P_{k|k})``, and the prediction step implements 
+```math
+  \begin{align*}
+  \mu_{k+1|k} &= A \mu_{k|k} + B u_k\\
+  P_{k+1|k} &= A P_{k|k} A^T + W
+  \end{align*}
+```
+
+Then, given a measurement ``y_{k+1}``, the correction step implements
+```math
+\begin{align*}
+\mu_{k+1|k+1} &= \mu_{k+1|k} + K ( y_{k+1} - C \mu_{k+1|k})\\
+P_{k+1|k+1} &= (I - K C) P_{k+1|k}\\
+K &= P_{k+1|k} C^T (C P_{k+1|k} C^T + V)^{-1}
+\end{align*}
+```
 
 ## Initializing
 To initialize the KF, 
@@ -28,13 +46,14 @@ To get the mean, covariance, or marginal standard deviations
 σ(s) # returns the sqrt of the diagonal of the covariance matrix
 ```
 
-### Predicting and Correcting
-Then, you can run a prediction step
+## Predicting and Correcting
+You can run a prediction step
 ```julia
 u_0 = # control input at time k=0
 s_1_0 = predict(s_0_0, A, B, u_0, W)
 ```
 now `s_1_0` = ``s_{1|0}``  is the kf state at time ``k=1`` conditioned on measurements upto time ``k=0``. 
+
 
 and then correct it use the measurement
 ```julia
@@ -47,7 +66,7 @@ You can also do the prediction and correction in the same step:
 ```julia
 s_1_1 = kalman_filter(s_0_0, y_1, u_0, A, B, C, V, W)
 ```
-### Getters
+## Extracting State and Covariances
 To get the mean, covariance or standard deviations along the diagonal
 ```julia
   μ(s) # returns the mean

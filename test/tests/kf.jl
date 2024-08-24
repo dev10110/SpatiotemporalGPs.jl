@@ -11,23 +11,22 @@ using StaticArrays
     P = diagm([1.0, 5.0])
     s = KFState(μ = x, Σ = P)
 
-    @test μ(s) ≈ x
-    @test Matrix(Σ(s)) ≈ P
-    @test σ(s) ≈ sqrt.(diag(P))
+    @test get_μ(s) ≈ x
+    @test Matrix(get_Σ(s)) ≈ P
+    @test get_σ(s) ≈ sqrt.(diag(P))
 end
 
 @testset "KalmanFilter - create Vectors" begin
-
-    for N = 1:15
+    for N in 1:15
         x = randn(N)
         sqrtP = randn(N, N)
         P = sqrtP' * sqrtP + I
 
         s = KFState(μ = x, Σ = P)
 
-        @test μ(s) ≈ x
-        @test Matrix(Σ(s)) ≈ P
-        @test σ(s) ≈ sqrt.(diag(P))
+        @test get_μ(s) ≈ x
+        @test Matrix(get_Σ(s)) ≈ P
+        @test get_σ(s) ≈ sqrt.(diag(P))
     end
 end
 
@@ -47,24 +46,20 @@ end
 end
 
 @testset "KalmanFilter - create SVectors" begin
-
-    for N = 1:5
+    for N in 1:5
         x = @SVector randn(N)
         sqrtP = @SMatrix randn(N, N)
         P = sqrtP' * sqrtP + I
 
         s = KFState(μ = x, Σ = P)
 
-        @test μ(s) ≈ x
-        @test Matrix(Σ(s)) ≈ P
-        @test σ(s) ≈ sqrt.(diag(P))
+        @test get_μ(s) ≈ x
+        @test Matrix(get_Σ(s)) ≈ P
+        @test get_σ(s) ≈ sqrt.(diag(P))
     end
 end
 
-
-
 @testset "KalmanFilter - predict" begin
-
     N = 4
 
     x = randn(N)
@@ -86,13 +81,12 @@ end
 
     # test
     P_new = Ad * P * Ad' + W
-    @test μ(s_new) ≈ Ad * x
-    @test Matrix(Σ(s_new)) ≈ P_new
-    @test σ(s_new) ≈ sqrt.(diag(P_new))
+    @test get_μ(s_new) ≈ Ad * x
+    @test Matrix(get_Σ(s_new)) ≈ P_new
+    @test get_σ(s_new) ≈ sqrt.(diag(P_new))
 end
 
 @testset "KalmanFilter - correct" begin
-
     N = 4 # number of states
     M = 2 # number of measurements
 
@@ -117,7 +111,7 @@ end
     # test
     K = P * C' * inv(C * P * C' + V)
     P_new = (I - K * C) * P
-    @test μ(s_new) ≈ x + K * (y - C * x)
-    @test Matrix(Σ(s_new)) ≈ P_new
-    @test σ(s_new) ≈ sqrt.(diag(P_new))
+    @test get_μ(s_new) ≈ x + K * (y - C * x)
+    @test Matrix(get_Σ(s_new)) ≈ P_new
+    @test get_σ(s_new) ≈ sqrt.(diag(P_new))
 end
