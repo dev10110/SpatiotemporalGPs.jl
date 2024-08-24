@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Example · SpatiotemporalGPs.jl</title><meta name="title" content="Example · SpatiotemporalGPs.jl"/><meta property="og:title" content="Example · SpatiotemporalGPs.jl"/><meta property="twitter:title" content="Example · SpatiotemporalGPs.jl"/><meta name="description" content="Documentation for SpatiotemporalGPs.jl."/><meta property="og:description" content="Documentation for SpatiotemporalGPs.jl."/><meta property="twitter:description" content="Documentation for SpatiotemporalGPs.jl."/><meta property="og:url" content="https://dev10110.github.io/SpatiotemporalGPs.jl/example/synthetic_data/"/><meta property="twitter:url" content="https://dev10110.github.io/SpatiotemporalGPs.jl/example/synthetic_data/"/><link rel="canonical" href="https://dev10110.github.io/SpatiotemporalGPs.jl/example/synthetic_data/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SpatiotemporalGPs.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../quickstart/">Quickstart</a></li><li class="is-active"><a class="tocitem" href>Example</a><ul class="internal"><li><a class="tocitem" href="#Define-the-Problem"><span>Define the Problem</span></a></li><li><a class="tocitem" href="#Create-Synthetic-Data"><span>Create Synthetic Data</span></a></li><li><a class="tocitem" href="#Initializing"><span>Initializing</span></a></li><li><a class="tocitem" href="#Correcting-with-measurements"><span>Correcting with measurements</span></a></li><li><a class="tocitem" href="#Predicting"><span>Predicting</span></a></li><li><a class="tocitem" href="#Measuring-multiple-points"><span>Measuring multiple points</span></a></li><li><a class="tocitem" href="#Do-a-Whole-Simulation"><span>Do a Whole Simulation</span></a></li></ul></li><li><a class="tocitem" href="../../kf/">Kalman Filters</a></li><li><a class="tocitem" href="../../stgpkf/">STGPKF</a></li><li><span class="tocitem">API</span><ul><li><a class="tocitem" href="../../api/kf/">Kalman Filters</a></li><li><a class="tocitem" href="../../api/stgpkf/">STGPKF</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Example</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Example</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/dev10110/SpatiotemporalGPs.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/dev10110/SpatiotemporalGPs.jl/blob/main/docs/src/example/synthetic_data.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Full-Example-with-Synthetic-Data"><a class="docs-heading-anchor" href="#Full-Example-with-Synthetic-Data">Full Example with Synthetic Data</a><a id="Full-Example-with-Synthetic-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Full-Example-with-Synthetic-Data" title="Permalink"></a></h1><h2 id="Define-the-Problem"><a class="docs-heading-anchor" href="#Define-the-Problem">Define the Problem</a><a id="Define-the-Problem-1"></a><a class="docs-heading-anchor-permalink" href="#Define-the-Problem" title="Permalink"></a></h2><pre><code class="language-julia hljs">using SpatiotemporalGPs
+using StaticArrays, LinearAlgebra, Plots</code></pre><pre><code class="language-julia hljs"># setup the spatial and temporal kernels
+σt = 2.0   # m/s
+σs = 1.0   # m/s
+lt = 3*60.0  # minutes
+ls = 3.0   # km
+
+kt = Matern(3/2, σt, lt)
+ks = Matern(1/2, σs, ls)
+
+# determine the temporal step size
+Δt = 5.0 # minutes
+Δx = 0.25 # km
+
+# create the spatial domain
+xs = 0:Δx:7.0
+ys = 0:Δx:10.0
+
+grid_pts = vec([@SVector[x, y] for x in xs, y in ys]);</code></pre><h2 id="Create-Synthetic-Data"><a class="docs-heading-anchor" href="#Create-Synthetic-Data">Create Synthetic Data</a><a id="Create-Synthetic-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Create-Synthetic-Data" title="Permalink"></a></h2><pre><code class="language-julia hljs"># let us generate the synthetic data first
+tmax = 4 * 60.0 # minutes
+synthetic_data = STGPKF.generate_spatiotemporal_process(xs, ys, Δt, tmax, ks, kt);
+
+# visualize the ground truth data
+@gif for k=1:length(synthetic_data.ts)
+    heatmap(synthetic_data.xs, synthetic_data.ys, synthetic_data.data[:, :, k]&#39;, clims=(-5,5))
+    title!(&quot;k = $k&quot;)
+    xlabel!(&quot;x&quot;)
+    ylabel!(&quot;y&quot;)
+    plot!(aspect_ratio=:equal)
+end</code></pre><p><img src="../gif1.gif" alt/></p><p>Lets start estimating...</p><h2 id="Initializing"><a class="docs-heading-anchor" href="#Initializing">Initializing</a><a id="Initializing-1"></a><a class="docs-heading-anchor-permalink" href="#Initializing" title="Permalink"></a></h2><pre><code class="language-julia hljs"># Create the STGPKF Problem
+problem = STGPKFProblem(grid_pts, ks, kt, Δt)
+
+# Construct the state at time 0 conditioned on no measurements
+state_initial = stgpkf_initialize(problem) </code></pre><h2 id="Correcting-with-measurements"><a class="docs-heading-anchor" href="#Correcting-with-measurements">Correcting with measurements</a><a id="Correcting-with-measurements-1"></a><a class="docs-heading-anchor-permalink" href="#Correcting-with-measurements" title="Permalink"></a></h2><pre><code class="language-julia hljs"># take some measurements
+function rand_point(xs, ys)
+    xmin, xmax = extrema(xs)
+    ymin, ymax = extrema(ys)
+    x = (xmax - xmin) * rand() + xmin
+    y = (ymax - ymin) * rand() + ymin
+    return @SVector [x, y]
+end
+
+function measure(data, x, y, t, σ_m=0.1)
+    return data.itp(x, y, t) + σ_m *randn()
+end
+
+measure_pt = rand_point(xs, ys)
+measure_σ = 0.1 # m/s
+measure_y = measure(synthetic_data, measure_pt..., synthetic_data.ts[1], measure_σ);
+
+# Do a correction
+state_1_1 = stgpkf_correct(problem, state_initial, measure_pt, measure_y, measure_σ)
+
+# plot the resulting state
+plot(problem, state_1_1; plot_type=:estimate, clims=(-5, 5), cmap=:bluesreds, aspect_ratio=:equal)
+scatter!([measure_pt[1]], [measure_pt[2]], label=&quot;measured pt&quot;)</code></pre><p><img src="../output_20_0.svg" alt/></p><pre><code class="language-julia hljs">plot(problem, state_1_1; plot_type=:std, clims=(0, 3), aspect_ratio=:equal)</code></pre><p><img src="../output_21_0.svg" alt/></p><pre><code class="language-julia hljs">plot(problem, state_1_1; plot_type=:clarity, clims=(0, 1), aspect_ratio=:equal)</code></pre><p><img src="../output_22_0.svg" alt/></p><h2 id="Predicting"><a class="docs-heading-anchor" href="#Predicting">Predicting</a><a id="Predicting-1"></a><a class="docs-heading-anchor-permalink" href="#Predicting" title="Permalink"></a></h2><pre><code class="language-julia hljs"># propagate to the next time step
+state_2_1 = stgpkf_predict(problem, state_1_1)
+
+# plot
+p0 = plot(synthetic_data, synthetic_data.ts[2]; clims=(-5, 5), cmap = :bluesreds, aspect_ratio=:equal)
+title!(&quot;synthetic data&quot;)
+p1 = plot(problem, state_2_1; plot_type=:estimate, clims=(-5, 5), cmap=:bluesreds, aspect_ratio=:equal)
+p2 = plot(problem, state_2_1; plot_type=:clarity, clims=(0, 1), aspect_ratio=:equal)
+plot(p0, p1, p2, layout=(@layout [a b c]), size=(900, 600))</code></pre><p><img src="../output_25_0.svg" alt/></p><h2 id="Measuring-multiple-points"><a class="docs-heading-anchor" href="#Measuring-multiple-points">Measuring multiple points</a><a id="Measuring-multiple-points-1"></a><a class="docs-heading-anchor-permalink" href="#Measuring-multiple-points" title="Permalink"></a></h2><pre><code class="language-julia hljs"># measure at a 10 different points at the same time
+measure_pts = [rand_point(xs, ys) for i=1:10]
+measure_ys = [measure(synthetic_data, pt..., synthetic_data.ts[2], measure_σ) for pt in measure_pts]
+measure_Σ = (measure_σ^2) * I(10);
+
+# do the KF correction
+state_2_2 = stgpkf_correct(problem, state_2_1, measure_pts, measure_ys, measure_Σ)
+
+# plot results
+p0 = plot(synthetic_data, synthetic_data.ts[2]; clims=(-5, 5), cmap = :bluesreds, aspect_ratio=:equal)
+title!(&quot;synthetic data&quot;)
+scatter!(first.(measure_pts), last.(measure_pts), label=&quot;measure pts&quot;)
+p1 = plot(problem, state_2_2; plot_type=:estimate, clims=(-5, 5), cmap=:bluesreds, aspect_ratio=:equal)
+p2 = plot(problem, state_2_2; plot_type=:clarity, clims=(0, 1), aspect_ratio=:equal)
+plot(p0, p1, p2, layout=(@layout [a b c]), size=(900, 600))</code></pre><p><img src="../output_28_0.svg" alt/></p><h2 id="Do-a-Whole-Simulation"><a class="docs-heading-anchor" href="#Do-a-Whole-Simulation">Do a Whole Simulation</a><a id="Do-a-Whole-Simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Do-a-Whole-Simulation" title="Permalink"></a></h2><pre><code class="language-julia hljs"># initialize
+state = stgpkf_initialize(problem) 
+
+states = (typeof(state))[]
+
+for k=1:length(synthetic_data.ts)
+
+    @show k
+
+    # make some measurements
+    measure_pts = [rand_point(xs, ys) for i=1:10]
+    measure_ys = [measure(synthetic_data, pt..., synthetic_data.ts[k], measure_σ) for pt in measure_pts]
+    measure_Σ = (measure_σ^2) * I(10);
+
+    # do the KF correction
+    state_correction = stgpkf_correct(problem, state, measure_pts, measure_ys, measure_Σ)
+
+    # add it to the states
+    push!(states, state_correction)
+
+    # do a prediction
+    state = stgpkf_predict(problem, state_correction)
+
+end</code></pre><p>Animate the results!</p><pre><code class="language-julia hljs">@gif for k=1:length(states)
+    p0 = plot(synthetic_data, synthetic_data.ts[k]; clims=(-5, 5), cmap = :bluesreds, aspect_ratio=:equal)
+    title!(&quot;synthetic data&quot;)
+    p1 = plot(problem, states[k]; plot_type=:estimate, clims=(-5, 5), cmap=:bluesreds, aspect_ratio=:equal)
+    p2 = plot(problem, states[k]; plot_type=:clarity, clims=(0, 1), aspect_ratio=:equal)
+    plot(p0, p1, p2, layout=(@layout [a b c]), size=(900, 600))
+end</code></pre><p><img src="../gif2.gif" alt/></p><pre><code class="language-julia hljs">@gif for k=1:length(states)
+    p0 = plot(synthetic_data, synthetic_data.ts[k]; clims=(-5, 5), cmap = :bluesreds, aspect_ratio=:equal)
+    title!(&quot;synthetic data&quot;)
+    p1 = plot(problem, states[k]; plot_type=:estimate, clims=(-5, 5), cmap=:bluesreds, aspect_ratio=:equal)
+    
+    p2 = plot(problem, states[k]; plot_type=:percentile, percentile=0.05, clims=(-5, 5), cmap=:bluesreds, aspect_ratio=:equal)
+
+    p3 = plot(problem, states[k]; plot_type=:percentile, percentile=0.95, clims=(-5, 5), cmap=:bluesreds, aspect_ratio=:equal)
+    
+    plot(p0, p1, p2, p3, layout=(@layout [a b; c d]), size=(900, 600))
+end</code></pre><p><img src="../gif3.gif" alt/></p><p>Check if the data is within the estimate</p><pre><code class="language-julia hljs">tol = 0.1
+
+fs = Float64[]
+for k=1:length(states)
+    M_05 = STGPKF.get_estimate_percentile(problem, states[k], tol/2)
+    M_95 = STGPKF.get_estimate_percentile(problem, states[k], (1 - tol/2))
+    M_true = vec(synthetic_data.data[:,:, k])
+    f = sum(M_05 .&lt;= M_true .&lt;= M_95) / length(M_true)
+    push!(fs, f)
+end
+
+plot(100*fs, label=&quot;Measured&quot;)
+hline!([100*(1 - tol)], label=&quot;Theory&quot;)
+xlabel!(&quot;Time step&quot;)
+title!(&quot;Percent of points estimated within tol of accuracy&quot;)
+ylabel!(&quot;Percent [%]&quot;)</code></pre><p><img src="../output_39_0.svg" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../quickstart/">« Quickstart</a><a class="docs-footer-nextpage" href="../../kf/">Kalman Filters »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.6.0 on <span class="colophon-date" title="Saturday 24 August 2024 23:10">Saturday 24 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
