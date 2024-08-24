@@ -5,6 +5,8 @@
 [![Build Status](https://github.com/dev10110/SpatiotemporalGPs.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/dev10110/SpatiotemporalGPs.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 
+![](spatiotemporal.gif)
+
 ## Testing
 
 `cd` into this directory, and run `julia`. From inside the REPL do
@@ -24,4 +26,5 @@ then from a new terminal, run a `LiveServer` to see the constructed docs:
 ```
 julia -e 'using LiveServer; serve(dir="docs/build")'
 ```
+
 
