@@ -21,6 +21,7 @@ makedocs(;
     ),
     pages = [
         "Home" => "index.md",
+        "Quickstart" => "quickstart.md",
         "Kalman Filters" => "kf.md",
         "STGPKF" => "stgpkf.md",
         "API" => [
