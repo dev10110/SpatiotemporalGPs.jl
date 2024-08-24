@@ -22,6 +22,7 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "Quickstart" => "quickstart.md",
+        "Example" => "example/synthetic_data.md",
         "Kalman Filters" => "kf.md",
         "STGPKF" => "stgpkf.md",
         "API" => [
