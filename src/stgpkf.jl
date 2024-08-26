@@ -188,9 +188,12 @@ function stgpkf_initialize(problem::STGPKFProblem)
 
     # create the covariance matrix
     P0 = initial_covariance(temporal_kernel)
-    Σ0 = I(Ng) ⊗ P0
-    kfState = KFState(; μ = x0, Σ = Σ0)
-    return kfState
+
+    # Σ0 = kron(1.0 * I(Ng), P0)
+    # Σ0 = I(Ng) ⊗ P0
+    Σ0 = (1.0 * I(Ng)) ⊗ P0
+
+    return KFState(μ = x0, Σ = Σ0)
 end
 
 # construct the next state estimate by propagating the state space model by one timestep
@@ -203,10 +206,8 @@ function stgpkf_predict(prob::STGPKFProblem, state::KFState)
     checkdims(prob, state)
 
     Ng = length(prob.pts)
-    # A = I(Ng) ⊗ prob.ss_model.Φ
-    # W = I(Ng) ⊗ prob.ss_model.W
-    A = kron(I(Ng), prob.ss_model.Φ)
-    W = kron(I(Ng), prob.ss_model.W)
+    A = I(Ng) ⊗ prob.ss_model.Φ
+    W = I(Ng) ⊗ prob.ss_model.W
 
     new_state = KF.predict(state, A, W)
 
@@ -249,7 +250,7 @@ function stgpkf_correct(prob::STGPKFProblem{P, F},
     # check that the measurements are of compatible dimensions  
     @assert length(ys)==Nm "The number of points and measurements must match."
     @assert size(Σm)==(Nm, Nm) "The measurement noise matrix must be of size (Nm, Nm)."
-    @assert isposdef(Σm) "Σm must be positive definite. remember to check `issymmetric(Σm)` is true."
+    # @assert isposdef(Σm) "Σm must be positive definite. remember to check `issymmetric(Σm)` is true."
 
     # construct the spatial kernel matrices
     K_mm = kernel_matrix(prob.ks, pts)

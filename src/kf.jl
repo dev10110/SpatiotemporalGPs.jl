@@ -18,9 +18,9 @@ using LinearAlgebra
 
 A type for the Kalman Filter State, which is parameterized by the types of the mean estimate and the upper triangular cholesky component of the covariance matrix.
 """
-struct KFState{T, V <: AbstractVector{T}, M, MU <: UpperTriangular{T, M}}
+struct KFState{T, V <: AbstractVector{T}, M}
     μ::V # mean estimate of the kalman filter
-    U::MU # upper triangular cholesky component of the Kalman State
+    U::UpperTriangular{T, M} # upper triangular cholesky component of the Kalman State
 end
 
 #######################
@@ -157,7 +157,6 @@ function correct(s::S, y, C, V) where {S <: KFState}
     # update
     μ_new = s.μ + L * z
 
-    # @time sqrtA_ = s.U * (I - L * C)'
     sqrtA_ = s.U + (s.U * C') * (-L')
     sqrtB_ = Γv * L'
 
@@ -197,7 +196,8 @@ end
 
 function qrr!(A)
     N = minimum(size(A))
-    LinearAlgebra.LAPACK.geqrf!(A) # TODO(dev): do this but use generic Julia rather than LAPACK
+    # TODO(dev): do this but use generic Julia rather than LAPACK
+    LinearAlgebra.LAPACK.geqrf!(A)
     return UpperTriangular(A[1:N, 1:N])
 end
 

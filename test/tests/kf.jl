@@ -4,6 +4,11 @@ using Test
 using LinearAlgebra
 using StaticArrays
 
+function rand_posdef(N)
+    A = randn(N, N)
+    return Symmetric(A * A' + I)
+end
+
 @testset "KalmanFilter - create (diagonal)" begin
 
     # try the diagonal case 
@@ -114,4 +119,22 @@ end
     @test get_μ(s_new) ≈ x + K * (y - C * x)
     @test Matrix(get_Σ(s_new)) ≈ P_new
     @test get_σ(s_new) ≈ sqrt.(diag(P_new))
+end
+
+@testset "KalmanFilter - qrr" begin
+    N = 20
+    A = rand_posdef(N)
+    B = rand_posdef(N)
+
+    sqrtA = KalmanFilter.chol_sqrt(A) # upper triangular
+    sqrtB = KalmanFilter.chol_sqrt(B) # upper triangular
+
+    @test sqrtA' * sqrtA ≈ A
+    @test sqrtB' * sqrtB ≈ B
+
+    sqrt_R_true = KalmanFilter.chol_sqrt(A + B)
+
+    sqrt_R = KalmanFilter.qrr(sqrtA, sqrtB)
+
+    @test sqrt_R' * sqrt_R ≈ sqrt_R_true' * sqrt_R_true
 end
