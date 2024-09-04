@@ -121,15 +121,54 @@ function get_estimate_covariance(problem::STGPKFProblem, state::KFState)
     return Σ
 end
 
+function diag_matmul!(r, A, B)
+    N, KA = size(A)
+    KB, M = size(B)
+    @assert KA == KB
+
+    L = min(N, M)
+
+    for i in 1:L
+        @inbounds r[i] = sum(j -> A[i, j] * B[j, i], 1:KA)
+    end
+end
+
+function diag_matmul(
+        A::TA, B::TB) where {F, TA <: AbstractMatrix{F}, TB <: AbstractMatrix{F}}
+    N, KA = size(A)
+    KB, M = size(B)
+    @assert KA == KB
+
+    r = Array{F}(undef, min(N, M))
+    diag_matmul!(r, A, B)
+    return r
+end
+
 """
     get_estimate_std(problem, state)
 
 returns the standard deviation of the estimated spatiotemporal field at all grid points, in a Vector{F} format. The vector has same length as `problem.pts`.
 """
 function get_estimate_std(problem::STGPKFProblem, state::KFState)
-    Σ = get_estimate_covariance(problem, state)
-    σ = sqrt.(diag(Σ))
-    return σ
+
+    # slow method
+    # Σ = get_estimate_covariance(problem, state)
+    # σ = sqrt.(diag(Σ))
+
+    # fast method
+    Ng = length(problem.pts)
+    C = problem.ss_model.C
+
+    L = problem.sqrt_K_gg * (I(Ng) ⊗ C)
+    # Σ = L * Matrix(get_Σ(state)) * L'
+    z = state.U * L'
+    σsq = diag_matmul(z', z)
+
+    return map(sqrt, σsq)
+end
+
+function σ_to_clarity(σ)
+    return 1 / (1 + σ^2)
 end
 
 """
@@ -138,9 +177,9 @@ end
 returns the clarity of the estimated spatiotemporal field at all grid points, in a Vector{F} format. The vector has same length as `problem.pts`.
 """
 function get_estimate_clarity(problem::STGPKFProblem, state::KFState)
-    Σ = get_estimate_covariance(problem, state)
-    q = [1 / (1 + Σii) for Σii in diag(Σ)]
-    return q
+    σ = get_estimate_std(problem, state)
+
+    return σ_to_clarity.(σ)
 end
 
 """

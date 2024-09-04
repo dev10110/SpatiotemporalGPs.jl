@@ -1,7 +1,7 @@
 name = "SpatiotemporalGPs"
 uuid = "73b3b457-46a4-4dae-aece-b1ff83e37843"
 authors = ["Devansh Ramgopal Agrawal <devansh@umich.edu> and contributors"]
-version = "1.0.0-DEV"
+version = "1.0.1-DEV"
 
 [deps]
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
