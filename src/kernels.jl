@@ -33,6 +33,14 @@ function dims(SS::DiscreteTimeStateSpaceModel)
     return size(SS.Φ, 1)
 end
 
+"""
+    ss_dims(kernel)
+Returns the number of states in the state space model for the given kernel.
+"""
+ss_dims(k::Matern12) = 1
+ss_dims(k::Matern32) = 2
+ss_dims(k::Matern52) = 3
+
 # define the kernel functions
 function (k::SqExp)(x, y)
     d = norm(x - y)
@@ -57,9 +65,9 @@ end
 function kernel_matrix(
         kernel::KK,
         X::VPX
-) where {PX, VPX <: AbstractVector{PX}, KK <: AbstractKernel}
+) where {F, PX, VPX <: AbstractVector{PX}, KK <: AbstractKernel{F}}
     NX = length(X)
-    K = Array{Float64, 2}(undef, NX, NX)
+    K = Array{F, 2}(undef, NX, NX)
     # only compute the upper triangle
     for i in 1:NX, j in i:NX
         K[i, j] = kernel(X[i], X[j])
@@ -79,10 +87,11 @@ function kernel_matrix(
         X::VPX,
         Y::VPY
 ) where {
-        PX, PY, VPX <: AbstractVector{PX}, VPY <: AbstractVector{PY}, KK <: AbstractKernel}
+    F,
+        PX, PY, VPX <: AbstractVector{PX}, VPY <: AbstractVector{PY}, KK <: AbstractKernel{F}}
     NX = length(X)
     NY = length(Y)
-    K = Array{Float64, 2}(undef, NX, NY)
+    K = Array{F, 2}(undef, NX, NY)
     for i in 1:NX, j in 1:NY
         K[i, j] = kernel(X[i], Y[j])
     end
@@ -93,9 +102,10 @@ end
 function state_space_model(kernel::Matern12{F}) where {F}
     λ = kernel.λ
     σ = sqrt(kernel.σsq)
-    A = @SMatrix [-λ]
-    B = @SMatrix [one(F)]
-    C = @SMatrix [σ * sqrt(2λ)]
+
+    A = SMatrix{1,1,F,1}(-λ)
+    B = SMatrix{1,1,F,1}(1)
+    C = SMatrix{1,1,F,1}(σ * sqrt(2λ))
 
     SS = ContinuousTimeStateSpaceModel(A, B, C)
 
@@ -103,13 +113,17 @@ function state_space_model(kernel::Matern12{F}) where {F}
 end
 
 function state_space_model(kernel::Matern32{F}) where {F}
+
     λ = kernel.λ
     σ = sqrt(kernel.σsq)
-    A = @SMatrix [[zero(F);; one(F)]; [-3 * λ^2;; -2 * sqrt(3) * λ]]
-    B = @SMatrix [[zero(F);;]; [one(F);;]]
-    C = @SMatrix [σ * sqrt(12 * sqrt(3)) * λ^(3 / 2);; zero(F)]
+
+    # when creating static arrays, need to be explicit about the type, and provide elements in column-major order
+    A = SMatrix{2,2,F,4}(0, -3*λ^2, 1, -2*sqrt(3)*λ)
+    B = SMatrix{2,1,F,2}(0,1)
+    C = SMatrix{1, 2, F, 2}(σ * sqrt(12 * sqrt(3)) * λ^(3 / 2), 0)
 
     SS = ContinuousTimeStateSpaceModel(A, B, C)
+
     return SS
 end
 
@@ -130,12 +144,12 @@ function state_space_model(kernel::Matern52{F}) where {F}
 
     C = @SMatrix [[sqrt(400 * sqrt(5) / 3) * σ * λ^(5 / 2);; z;; z];]
 
-    SS = ContinuousTimeStateSpaceModel(A, B, C)
+    SS = ContinuousTimeStateSpaceModel(F.(A), F.(B), F.(C))
     return SS
 end
 
 # get the discrete time state-space models
-function state_space_model(kernel::Matern12, T)
+function state_space_model(kernel::Matern12{F}, T) where {F}
     σ = sqrt(kernel.σsq)
     λ = kernel.λ
 
@@ -143,12 +157,12 @@ function state_space_model(kernel::Matern12, T)
     W = @SMatrix [[-((-1 + exp(-2 * T * λ)) / (2 * λ));;];]
     C = @SMatrix [[σ * sqrt(2 * λ);;];]
 
-    SS = DiscreteTimeStateSpaceModel(Φ, W, C, T)
+    SS = DiscreteTimeStateSpaceModel(F.(Φ), F.(W), F.(C), F(T))
 
     return SS
 end
 
-function state_space_model(kernel::Matern32, T)
+function state_space_model(kernel::Matern32{F}, T) where {F}
     σ = sqrt(kernel.σsq)
     λ = kernel.λ
 
@@ -167,12 +181,12 @@ function state_space_model(kernel::Matern32, T)
 
     C = @SMatrix [[2 * 3^(3 / 4) * λ^(3 / 2) * σ;; 0];]
 
-    SS = DiscreteTimeStateSpaceModel(Φ, W, C, T)
+    SS = DiscreteTimeStateSpaceModel(F.(Φ), F.(W), F.(C), F(T))
 
     return SS
 end
 
-function state_space_model(kernel::Matern52, T)
+function state_space_model(kernel::Matern52{F}, T) where {F} 
     σ = sqrt(kernel.σsq)
     λ = kernel.λ
 
@@ -229,24 +243,27 @@ function state_space_model(kernel::Matern52, T)
 
     C = @SMatrix [[(20 * 5^(1 / 4) * λ^(5 / 2) * σ) / sqrt(3);; 0;; 0];]
 
-    SS = DiscreteTimeStateSpaceModel(Φ, W, C, T)
+    SS = DiscreteTimeStateSpaceModel(F.(Φ), F.(W), F.(C), F(T))
 
     return SS
 end
 
 # get the initial covariance matrix
-function initial_covariance(kernel::Matern12)
+function initial_covariance(kernel::Matern12{F}) where {F}
     λ = kernel.λ
-    return @SMatrix [[1 / (2 * λ);;];]
+    P = @SMatrix [[1 / (2 * λ);;];] 
+    return F.(P)
 end
 
-function initial_covariance(kernel::Matern32)
+function initial_covariance(kernel::Matern32{F}) where {F}
     λ = kernel.λ
-    return @SMatrix [[1 / (12 * sqrt(3) * λ^3);; 0];
+    P = @SMatrix [[1 / (12 * sqrt(3) * λ^3);; 0];
                      [0;; 1 / (4 * sqrt(3) * λ)]]
+
+    return F.(P)
 end
 
-function initial_covariance(kernel::Matern52)
+function initial_covariance(kernel::Matern52{F}) where {F}
     λ = kernel.λ
     Σ11 = 3 / (400 * sqrt(5) * λ^5)
     Σ12 = 0
@@ -262,5 +279,5 @@ function initial_covariance(kernel::Matern52)
                   [Σ21;; Σ22;; Σ23];
                   [Σ31;; Σ32;; Σ33]]
 
-    return Σ
+    return F.(Σ)
 end

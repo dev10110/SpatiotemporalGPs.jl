@@ -1,24 +1,24 @@
 
-abstract type AbstractKernel end
-abstract type AbstractMaternKernel <: AbstractKernel end
+abstract type AbstractKernel{F} end
+abstract type AbstractMaternKernel{F} <: AbstractKernel{F} end
 
-struct SqExp{F} <: AbstractKernel
+struct SqExp{F} <: AbstractKernel{F}
     σsq::F
     λ::F
 end
 
 # structs to hold hyperparameters
-struct Matern12{F} <: AbstractMaternKernel
+struct Matern12{F} <: AbstractMaternKernel{F}
     σsq::F
     λ::F
 end
 
-struct Matern32{F} <: AbstractMaternKernel
+struct Matern32{F} <: AbstractMaternKernel{F}
     σsq::F
     λ::F
 end
 
-struct Matern52{F} <: AbstractMaternKernel
+struct Matern52{F} <: AbstractMaternKernel{F}
     σsq::F
     λ::F
 end
@@ -38,16 +38,39 @@ struct DiscreteTimeStateSpaceModel{MΦ, MW, MC, F} <: AbstractStateSpaceModel
     dt::F
 end
 
+abstract type AbstractSTGPKFProblem{F, P} end
+
+
 struct STGPKFProblem{
-    P,
     F,
+    P,
     VP <: AbstractVector{P},
-    KS <: AbstractKernel,
-    KT <: AbstractKernel,
+    KS <: AbstractKernel{F},
+    KT <: AbstractKernel{F},
     DTSS <: DiscreteTimeStateSpaceModel,
     M1 <: AbstractMatrix{F},
     M2 <: AbstractMatrix{F}
-}
+} <: AbstractSTGPKFProblem{F, P}
+    pts::VP # grid points
+    ks::KS  # spatial kernel
+    kt::KT # temporal kernel
+    ΔT::F # sampling period
+    ss_model::DTSS # state space model (discrete time) (for the temporal kernel)
+    sqrt_K_gg::M1
+    inv_sqrt_K_gg::M2 # inverse of the square root of the spatial kernel matrix
+end
+
+# create a similar struct for the Cuda version
+struct CudaSTGPKFProblem{
+    F,
+    P,
+    VP <: AbstractVector{P},
+    KS <: AbstractKernel{F},
+    KT <: AbstractKernel{F},
+    DTSS <: DiscreteTimeStateSpaceModel,
+    M1 <: AbstractMatrix{F},
+    M2 <: AbstractMatrix{F}
+} <: AbstractSTGPKFProblem{F, P}
     pts::VP # grid points
     ks::KS  # spatial kernel
     kt::KT # temporal kernel

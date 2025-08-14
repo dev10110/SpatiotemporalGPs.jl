@@ -9,3 +9,6 @@ using StaticArrays
 include("tests/kf.jl")
 include("tests/kernels.jl")
 include("tests/stgpkf.jl")
+include("tests/cuda_kron.jl")
+include("tests/cuda_stgpkf.jl")
+

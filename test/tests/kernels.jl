@@ -21,6 +21,7 @@ using StaticArrays
     @test k52.λ ≈ 1 / l
 end
 
+
 @testset "Kernels - kernel_matrix" for order in 1:3
     σ = 5.0
     l = 3.0
@@ -166,4 +167,65 @@ end
     @test dss.W≈W_true atol=1e-4
     @test dss.C≈H_true atol=1e-4
     @test dss.dt ≈ T
+end
+
+# add a test for float32 version of the kernels
+@testset "Kernels - create Float32" begin
+    σ = Float32(5.0)
+    l = Float32(3.0)
+    k12 = STGPKF.Matern(1 / 2, σ, l)
+    k32 = STGPKF.Matern(3 / 2, σ, l)
+    k52 = STGPKF.Matern(5 / 2, σ, l)    
+
+    @test k12.σsq ≈ σ^2
+    @test k12.λ ≈ 1 / l
+    @test typeof(k12.σsq) == Float32
+    @test typeof(k12.λ) == Float32
+    @test typeof(k12.σsq) == Float32
+    @test typeof(k12.λ) == Float32
+    @test typeof(k12.σsq) == Float32
+    @test typeof(k12.λ) == Float32
+
+    # now create a kernel matrix and check its type
+    x = [@SVector randn(2) for i in 1:10]
+    y = [@SVector randn(2) for i in 1:10]
+    Kxx = STGPKF.kernel_matrix(k12, x)
+    Kxy = STGPKF.kernel_matrix(k12, x, y)
+    @test typeof(Kxx) <: AbstractMatrix{Float32}
+    @test typeof(Kxy) <: AbstractMatrix{Float32}
+
+
+    # create the state space model and check its type
+    ss_12 = STGPKF.state_space_model(k12)
+    ss_32 = STGPKF.state_space_model(k32)
+    ss_52 = STGPKF.state_space_model(k52)
+
+    @test typeof(ss_12.A) <: AbstractMatrix{Float32}
+    @test typeof(ss_12.B) <: AbstractMatrix{Float32}
+    @test typeof(ss_32.A) <: AbstractMatrix{Float32}
+    @test typeof(ss_32.B) <: AbstractMatrix{Float32}
+    @test typeof(ss_52.A) <: AbstractMatrix{Float32}
+    @test typeof(ss_52.B) <: AbstractMatrix{Float32}
+
+    # create the discrete state space model and check its type
+    T = Float32(0.1)
+    dss_12 = STGPKF.state_space_model(k12, T)
+    dss_32 = STGPKF.state_space_model(k32, T)
+    dss_52 = STGPKF.state_space_model(k52, T)   
+
+    @test typeof(dss_12.Φ) <: AbstractMatrix{Float32}
+    @test typeof(dss_12.W) <: AbstractMatrix{Float32}
+    @test typeof(dss_12.C) <: AbstractMatrix{Float32}
+    @test typeof(dss_12.dt) == Float32
+
+    @test typeof(dss_32.Φ) <: AbstractMatrix{Float32}
+    @test typeof(dss_32.W) <: AbstractMatrix{Float32}
+    @test typeof(dss_32.C) <: AbstractMatrix{Float32}
+    @test typeof(dss_32.dt) == Float32
+
+    @test typeof(dss_52.Φ) <: AbstractMatrix{Float32}
+    @test typeof(dss_52.W) <: AbstractMatrix{Float32}
+    @test typeof(dss_52.C) <: AbstractMatrix{Float32}
+    @test typeof(dss_52.dt) == Float32
+
 end

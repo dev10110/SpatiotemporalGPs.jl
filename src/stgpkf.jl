@@ -1,14 +1,13 @@
 module STGPKF
-using LinearAlgebra
-using StaticArrays
-using Kronecker
+using LinearAlgebra, StaticArrays, Kronecker
 import SpecialFunctions
 import Interpolations
 # this module creates a spatiotemporal GP Kalman Filter
 
+
 export Matern, SquaredExponential
 export kernel_matrix, state_space_model
-export STGPKFProblem
+export STGPKFProblem, CudaSTGPKFProblem
 export stgpkf_initialize, stgpkf_predict, stgpkf_correct
 export generate_spatiotemporal_process
 
@@ -17,6 +16,7 @@ KF = KalmanFilter
 KFState = KF.KFState
 
 include("types.jl")
+include("kron.jl")
 include("kernels.jl")
 include("plotting.jl")
 include("synthetic.jl")
@@ -46,7 +46,7 @@ end
     checkdims(prob, state)
 checks that the dimensions of the state and the problem match
 """
-function checkdims(prob::STGPKFProblem, state::KFState)
+function checkdims(prob::AbstractSTGPKFProblem, state::KFState)
     Ng = length(prob.pts)
     nk = dims(prob.ss_model)
     nx = length(state)
@@ -58,10 +58,10 @@ end
   
 returns the states of the Kalman Filter for all grid points, in a Vector{SVector{F}} format. The outer vector has same length as `problem.pts`.
 """
-function get_states(problem::STGPKFProblem, state::KFState)
+function get_states(problem::AbstractSTGPKFProblem, state::KFState)
     nk = dims(problem.ss_model)
     Ng = length(problem.pts)
-    μ = KF.get_μ(state)
+    μ = Vector(KF.get_μ(state)) # force copy to CPU
     x = [SVector{nk}(μ[((i - 1) * nk + 1):(i * nk)]) for i in 1:Ng]
     return x
 end
@@ -71,10 +71,10 @@ end
 
 returns the marginal states of the Kalman Filter for all grid points, in a Vector{KFState} format. The outer vector has same length as `problem.pts`.
 """
-function get_marginal_states(problem::STGPKFProblem, state::KFState)
+function get_marginal_states(problem::AbstractSTGPKFProblem, state::KFState)
     nk = dims(problem.ss_model)
     Ng = length(problem.pts)
-    μ = KF.get_μ(state)
+    μ = Vector(KF.get_μ(state))
     Σ = Matrix(KF.get_Σ(state))
     xs = [SVector{nk}(μ[((i - 1) * nk + 1):(i * nk)]) for i in 1:Ng]
     Σs = [SMatrix{nk, nk}(Σ[((i - 1) * nk + 1):(i * nk), ((i - 1) * nk + 1):(i * nk)])
@@ -89,7 +89,7 @@ end
 
 returns the estimate of the Kalman Filter for all grid points, in a Vector{F} format. The outer vector has same length as `problem.pts`.
 """
-function get_estimate(problem::STGPKFProblem, state::KFState)
+function get_estimate(problem::AbstractSTGPKFProblem, state::KFState)
     Ng = length(problem.pts)
     C = problem.ss_model.C
     # spatially uncorrelated components
@@ -105,7 +105,7 @@ end
 
 returns the kalman filter's covariance of the estimated spatiotemporal field at all grid points, in a Vector{F} format.  The vector has same length as `problem.pts`.
 """
-function get_estimate_covariance(problem::STGPKFProblem, state::KFState)
+function get_estimate_covariance(problem::AbstractSTGPKFProblem, state::KFState)
     Ng = length(problem.pts)
     C = problem.ss_model.C
     # L = problem.sqrt_K_gg * (I(Ng) ⊗ C)
@@ -149,7 +149,7 @@ end
 
 returns the standard deviation of the estimated spatiotemporal field at all grid points, in a Vector{F} format. The vector has same length as `problem.pts`.
 """
-function get_estimate_std(problem::STGPKFProblem, state::KFState)
+function get_estimate_std(problem::AbstractSTGPKFProblem, state::KFState)
 
     # slow method
     # Σ = get_estimate_covariance(problem, state)
@@ -176,7 +176,7 @@ end
 
 returns the clarity of the estimated spatiotemporal field at all grid points, in a Vector{F} format. The vector has same length as `problem.pts`.
 """
-function get_estimate_clarity(problem::STGPKFProblem, state::KFState)
+function get_estimate_clarity(problem::AbstractSTGPKFProblem, state::KFState)
     σ = get_estimate_std(problem, state)
 
     return σ_to_clarity.(σ)
@@ -187,14 +187,14 @@ end
 
 returns the percentile-% quantile of the estimated spatiotemporal field at all grid points, in a Vector{F} format. The vector has same length as `problem.pts`.
 """
-function get_estimate_percentile(problem::STGPKFProblem, state::KFState, percentile)
+function get_estimate_percentile(problem::AbstractSTGPKFProblem, state::KFState, percentile)
     est = get_estimate(problem, state)
     σs = get_estimate_std(problem, state)
     return [quantile(μ, σ, percentile) for (μ, σ) in zip(est, σs)]
 end
 
 function spatial_interpolate(
-        problem::STGPKFProblem, state::KFState, pts::VP) where {P, VP <: AbstractVector{P}}
+        problem::AbstractSTGPKFProblem, state::KFState, pts::VP) where {P, VP <: AbstractVector{P}}
     K_mg = kernel_matrix(problem.ks, pts, problem.pts)
 
     C = problem.ss_model.C
@@ -208,29 +208,24 @@ end
     stgpkf_initialize(problem)
 returns a  `KFState` that represents the initial state of the Kalman Filter for all grid points
 """
-function stgpkf_initialize(problem::STGPKFProblem)
+function stgpkf_initialize(problem::STGPKFProblem{F}) where {F}
     grid_pts = problem.pts
     spatial_kernel = problem.ks
     temporal_kernel = problem.kt
     sampling_period = problem.ΔT
 
-    # create the state-space model
-    SS = state_space_model(temporal_kernel, sampling_period)
-
     # number of grid points
     Ng = length(grid_pts)
+
     # number of states in the state space model
-    nk = dims(SS)
+    nk = ss_dims(temporal_kernel)
 
     # create the initial state
-    x0 = zeros(nk * Ng) # everything starts at 0
+    x0 = zeros(F, nk * Ng) # everything starts at 0
 
     # create the covariance matrix
     P0 = initial_covariance(temporal_kernel)
-
-    # Σ0 = kron(1.0 * I(Ng), P0)
-    # Σ0 = I(Ng) ⊗ P0
-    Σ0 = (1.0 * I(Ng)) ⊗ P0
+    Σ0 = I(Ng) ⊗ P0
 
     return KFState(μ = x0, Σ = Σ0)
 end
@@ -241,12 +236,12 @@ end
   
 predicts the next state of the Kalman Filter for all grid points
 """
-function stgpkf_predict(prob::STGPKFProblem, state::KFState)
+function stgpkf_predict(prob::AbstractSTGPKFProblem, state::KFState)
     checkdims(prob, state)
 
     Ng = length(prob.pts)
     A = I(Ng) ⊗ prob.ss_model.Φ
-    W = I(Ng) ⊗ prob.ss_model.W
+    W = I(Ng) ⊗ prob.ss_model.W 
 
     new_state = KF.predict(state, A, W)
 
@@ -259,12 +254,11 @@ end
 corrects the state of the Kalman Filter given a single point measurement at ``pt`` with value ``y`` and measurement noise standard deviation ``σ_m``.
 """
 function stgpkf_correct(
-        prob::STGPKFProblem{P, F}, state::KFState, pt::P, y::F, σ_m::F) where {P, F}
+        prob::AbstractSTGPKFProblem{F, P}, state::KFState, pt::P, y::F, σ_m::F) where {F, P}
     vec_pts = [pt]
     vec_ys = @SVector [y]
     mat_Σm = @SMatrix [[σ_m^2;;];]
     return stgpkf_correct(prob, state, vec_pts, vec_ys, mat_Σm)
-    return new_state
 end
 
 """
@@ -272,7 +266,7 @@ end
 
 corrects the state of the Kalman Filter given multiple point measurements at ``pts`` with values ``ys`` and measurement noise covariance matrix ``Σm``.
 """
-function stgpkf_correct(prob::STGPKFProblem{P, F},
+function stgpkf_correct(prob::AbstractSTGPKFProblem,
         state::KFState,
         pts::VP,
         ys::VF,
