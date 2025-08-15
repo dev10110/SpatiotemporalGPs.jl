@@ -1,5 +1,6 @@
 module STGPKF
-using LinearAlgebra, StaticArrays, Kronecker
+using LinearAlgebra, StaticArrays
+# using Kronecker
 import SpecialFunctions
 import Interpolations
 # this module creates a spatiotemporal GP Kalman Filter

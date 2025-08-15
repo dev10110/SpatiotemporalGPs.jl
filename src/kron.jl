@@ -1,8 +1,46 @@
 # some small fast utilities for the kronecker product
-
+using Kronecker
+using CUDA
 
 """
-    kron_I_B_mm!(Y, B, X)
+    KroneckerIdentityProduct(B, N)
+
+Represents the Kronecker product (I(N) ⊗ B) without forming the product.
+"""
+struct KroneckerIdentityProduct{T, TB} <: AbstractKroneckerProduct{T}
+    B::TB
+    N::Int
+    function KroneckerIdentityProduct(B::TB, N::Int) where {TB <: AbstractMatrix}
+        @assert N > 0
+        return new{eltype(B), TB}(B, N)
+    end
+end
+
+function Kronecker.getmatrices(K::KroneckerIdentityProduct)
+    return (I(K.N), K.B)
+end
+
+
+function Kronecker.kronecker(A::Diagonal{Bool}, B::AbstractMatrix)
+    # A is a diagonal matrix with boolean values
+    # this is a special case where we can avoid forming the Kronecker product
+    return KroneckerIdentityProduct(B, size(A, 1))
+end
+
+function Base.adjoint(K::KroneckerIdentityProduct)
+    # adjoint of (I(N) ⊗ B) is (I(N) ⊗ B')
+    # do a copy to force the adjoint to be evaluated
+    return KroneckerIdentityProduct(copy(adjoint(K.B)), K.N)
+end
+
+function Base.transpose(K::KroneckerIdentityProduct)
+    # transpose of (I(N) ⊗ B) is (I(N) ⊗ B')
+    # do a copy to force the transpose to be evaluated
+    return KroneckerIdentityProduct(copy(transpose(K.B)), K.N)
+end
+
+"""
+    kron_I_B_mm!(Y, N, B, X)
 
 In-place matrix version:
     Y := (I(N) ⊗ B) * X
@@ -42,28 +80,21 @@ function kron_I_B_mv!(y::AbstractVector, N::Int, B::AbstractMatrix, x::AbstractV
     return y
 end
 
-"""
-    KroneckerIdentityProduct(B, N)
-
-Represents the Kronecker product (I(N) ⊗ B) without forming the product.
-"""
-struct KroneckerIdentityProduct{T, TB} <: AbstractKroneckerProduct{T}
-    B::TB
-    N::Int
-    function KroneckerIdentityProduct(B::TB, N::Int) where {TB <: AbstractMatrix}
-        @assert N > 0
-        return new{eltype(B), TB}(B, N)
-    end
+# provide a way to allocate cuda arrays if the v is a cuda vector
+function Base.:*(K::GeneralizedKroneckerProduct, v::CuVector)
+    return mul!(CuVector{promote_type(eltype(v), eltype(K))}(undef, first(size(K))), K, v)
 end
 
-function Kronecker.getmatrices(K::KroneckerIdentityProduct)
-    return (I(K.N), K.B)
+# provide a way to allocate cuda arrays if the M is a cuda matrix
+function Base.:*(K::GeneralizedKroneckerProduct, M::CuMatrix)
+    return mul!(CuMatrix{promote_type(eltype(M), eltype(K))}(undef, size(K, 1), size(M, 2)), K, M)
 end
 
-function Kronecker.kronecker(A::Diagonal{Bool}, B::AbstractMatrix)
-    # A is a diagonal matrix with boolean values
-    # this is a special case where we can avoid forming the Kronecker product
-    return KroneckerIdentityProduct(B, size(A, 1))
+
+function Base.:*(v::CuMatrix, K::GeneralizedKroneckerProduct)
+    out = CuMatrix{promote_type(eltype(v), eltype(K))}(undef, last(size(K)), first(size(v)))
+    # need to use copy instead of collect to keep the CuArray type
+    return transpose(mul!(out, transpose(K), copy(transpose(v))))
 end
 
 function LinearAlgebra.mul!(y::AbstractVector, K::KroneckerIdentityProduct, x::AbstractVector)
@@ -76,56 +107,66 @@ function LinearAlgebra.mul!(Y::AbstractMatrix, K::KroneckerIdentityProduct, X::A
     return Y
 end
 
-function LinearAlgebra.mul!(Y::AbstractMatrix, K::KroneckerIdentityProduct, X::Adjoint{T, C}) where {T, C<:AbstractMatrix{T}}
-    # make the adjoint explicit
-    return mul!(Y, K, C(X))
-end
-
-function Base.:*(K::KroneckerIdentityProduct, v::AbstractVector)
-    N = K.N
-    m, q = size(K.B)
-    y = similar(v, eltype(v), (m * N))
-    mul!(y, K, v)
-    return y
-end
-    
-function Base.:*(K::KroneckerIdentityProduct, X::AbstractMatrix)
-    N = K.N
-    m, q = size(K.B)
-    L = size(X, 2)
-    Y = similar(X, eltype(X), (m * N, L))
-    mul!(Y, K, X)
-    return Y
-end
 
 
-# # mul!(C::Matrix{Float32}, A::UpperTriangular{Float32, CuArray{Float32, 2, CUDA.DeviceMemory}}, B::SpatiotemporalGPs.STGPKF.KroneckerIdentityProduct{Float32, Adjoint{Float32, CuArray{Float32, 2, CUDA.DeviceMemory}}})
+# function LinearAlgebra.mul!(Y::AbstractMatrix, X::AbstractMatrix, K::KroneckerIdentityProduct)
+#     # make the adjoint explicit
+#     # X * K = (K' * X')'
+#     
+#     
+#     return mul!(Y, K, C(X))
+# end
 
-function Base.:*(M::AbstractMatrix{F}, KT::KroneckerIdentityProduct{F, Adjoint{F, C}}) where {F, C <: AbstractMatrix{F}}
+# function LinearAlgebra.mul!(Y::AbstractMatrix, K::KroneckerIdentityProduct, X::Adjoint{T, C}) where {T, C<:AbstractMatrix{T}}
+#     # make the adjoint explicit
+#     return mul!(Y, K, C(X))
+# end
 
-    # KT = (I ⊗ B)' = (I ⊗ B')
-    # K = I ⊗ B
-
-    # M * KT = M * (I ⊗ B')
-    #        = ((I ⊗ B')' * M')'
-    #        = (KT' * M')'
-    #        = (K2 * M2)'
-
-    # force the transpose to happen
-    K2 = KroneckerIdentityProduct(C(KT.B'), KT.N)
-
-    S = K2 * M'
-    return S'
-
-end
-
-function Base.:*(M::UpperTriangular{F, C}, K::KroneckerIdentityProduct) where {F, C <: AbstractMatrix{F}}
-    return C(M) * K
-end 
-
-function Base.:*(M::LowerTriangular{F, C}, K::KroneckerIdentityProduct) where {F, C <: AbstractMatrix{F}}
-    return C(M) * K
-end 
+# function Base.:*(K::KroneckerIdentityProduct, v::AbstractVector)
+#     N = K.N
+#     m, q = size(K.B)
+#     y = similar(v, eltype(v), (m * N))
+#     mul!(y, K, v)
+#     return y
+# end
+#     
+# function Base.:*(K::KroneckerIdentityProduct, X::AbstractMatrix)
+#     N = K.N
+#     m, q = size(K.B)
+#     L = size(X, 2)
+#     Y = similar(X, eltype(X), (m * N, L))
+#     mul!(Y, K, X)
+#     return Y
+# end
+# 
+# 
+# # # mul!(C::Matrix{Float32}, A::UpperTriangular{Float32, CuArray{Float32, 2, CUDA.DeviceMemory}}, B::SpatiotemporalGPs.STGPKF.KroneckerIdentityProduct{Float32, Adjoint{Float32, CuArray{Float32, 2, CUDA.DeviceMemory}}})
+# 
+# function Base.:*(M::AbstractMatrix{F}, KT::KroneckerIdentityProduct{F, Adjoint{F, C}}) where {F, C <: AbstractMatrix{F}}
+# 
+#     # KT = (I ⊗ B)' = (I ⊗ B')
+#     # K = I ⊗ B
+# 
+#     # M * KT = M * (I ⊗ B')
+#     #        = ((I ⊗ B')' * M')'
+#     #        = (KT' * M')'
+#     #        = (K2 * M2)'
+# 
+#     # force the transpose to happen
+#     K2 = KroneckerIdentityProduct(C(KT.B'), KT.N)
+# 
+#     S = K2 * M'
+#     return S'
+# 
+# end
+# 
+# function Base.:*(M::UpperTriangular{F, C}, K::KroneckerIdentityProduct) where {F, C <: AbstractMatrix{F}}
+#     return C(M) * K
+# end 
+# 
+# function Base.:*(M::LowerTriangular{F, C}, K::KroneckerIdentityProduct) where {F, C <: AbstractMatrix{F}}
+#     return C(M) * K
+# end 
 
 # function Base.:*(K::KroneckerIdentityProduct{F, C}, M::LinearAlgebra.AbstractTriangular{F}) where {F, C <: AbstractMatrix{F}}
 
