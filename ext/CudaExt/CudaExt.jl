@@ -88,11 +88,6 @@ function SpatiotemporalGPs.stgpkf_correct(prob::CudaSTGPKFProblem{F},
         Σm::MF2) where {
         P, F, F2, VP <: AbstractVector{P}, VF2 <: AbstractVector{F2}, MF2 <: AbstractMatrix{F2}}
 
-    # since this is a CUDA version, some matrices should be on GPU and some on CPU 
-    # all the small matrices are on CPU until the last moment, when they get moved to the GPU
-    # this method assumes the measurement vector is much smaller than the number of grid points
-    # println("In stgpkf_correct CUDA version, line 86")
-
     # get the number of grid points
     Ng = length(prob.pts)
     Nm = length(pts)
