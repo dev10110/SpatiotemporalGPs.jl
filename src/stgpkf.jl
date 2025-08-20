@@ -255,10 +255,10 @@ end
 corrects the state of the Kalman Filter given a single point measurement at ``pt`` with value ``y`` and measurement noise standard deviation ``σ_m``.
 """
 function stgpkf_correct(
-        prob::AbstractSTGPKFProblem{F, P}, state::KFState, pt::P, y::F, σ_m::F) where {F, P}
+        prob::AbstractSTGPKFProblem{F, P}, state::KFState, pt::P, y::F2, σ_m::F2) where {F <: Real, P, F2 <: Real}
     vec_pts = [pt]
-    vec_ys = @SVector [y]
-    mat_Σm = @SMatrix [[σ_m^2;;];]
+    vec_ys = SVector{1, F}(y)
+    mat_Σm = SMatrix{1, 1, F}(σ_m^2)
     return stgpkf_correct(prob, state, vec_pts, vec_ys, mat_Σm)
 end
 
@@ -298,7 +298,8 @@ function stgpkf_correct(prob::AbstractSTGPKFProblem,
     H = L * (I(Ng) ⊗ C)
 
     # construct the noise matrix 
-    V = Symmetric(Σm) + Symmetric(K_mm) - Symmetric(L * L')
+    println("types: Σm: $(typeof(Σm)), K_mm: $(typeof(K_mm)), L: $(typeof(L))")
+    V = Symmetric(Σm + K_mm - L * L')
 
     # do the update
     new_state = KF.correct(state, ys, H, V)

@@ -35,9 +35,9 @@ function cuda_create_problem(kt_order, xs, ys, F)
     return prob
 end
 
-@testset "CUDA type stability" for F in (Float32, )
+@testset "CUDA STGPKF" for F in (Float32, Float64), kt_order in 1:3
 
-    @testset "CUDA STGPKF - create"  for kt_order in 1:3
+    @testset "CUDA STGPKF - create"  begin
         xs = 0.0:1.0:5.0
         ys = 0.0:1.0:3.0
         prob = cuda_create_problem(kt_order, xs, ys, F)
@@ -49,7 +49,7 @@ end
 
 
 
-    @testset "CUDA STGPKF - initialize" for kt_order in 1:3
+    @testset "CUDA STGPKF - initialize" begin
         xs = 0.0:1.0:5.0
         ys = 0.0:1.0:3.0
         prob = cuda_create_problem(kt_order, xs, ys, F)
@@ -67,7 +67,7 @@ end
 
     end
 
-    @testset "STGPKF - predict correct" for kt_order in 1:3
+    @testset "STGPKF - predict correct"  begin
         xs = F.(0.0:1.0:5.0)
         ys = F.(0.0:1.0:3.0)
         prob = cuda_create_problem(kt_order, xs, ys, F)
@@ -88,7 +88,7 @@ end
         @test Matrix(get_Σ(state_1_0))≈Matrix(get_Σ(state_0_0)) atol=1e-4
 
         # correct
-        pt = @SVector [maximum(xs) * rand(), maximum(ys) * rand()] # random point
+        pt = SVector{2, F}(maximum(xs) * rand(), maximum(ys) * rand()) # random point
         y = randn() # random measurement
         σm = 0.1 # measurement noise
         state_1_1 = stgpkf_correct(prob, state_1_0, pt, y, σm)
@@ -96,8 +96,8 @@ end
         # check that the states are changed
         @test state_1_1.μ != state_1_0.μ
         @test state_1_1.U != state_1_0.U
-        @show typeof(state_1_1.μ)
-        @show typeof(state_1_1.U)
+        # @show typeof(state_1_1.μ)
+        # @show typeof(state_1_1.U)
 
 
         # predict again

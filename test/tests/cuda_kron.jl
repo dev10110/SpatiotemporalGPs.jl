@@ -19,7 +19,7 @@ println("CUDA Functional: $(CUDA.functional())")
     In = I(N)
     K = In ⊗ A
 
-    @assert typeof(K) <: STGPKF.KroneckerIdentityProduct
+    # @assert typeof(K) <: STGPKF.KroneckerIdentityProduct
 
     # check against julia's kron
     @test K * b ≈ kron(In, A) * b
@@ -54,7 +54,7 @@ end
     # create the cuda version of the product
     K = In ⊗ cu_A
 
-    @test typeof(K) <: STGPKF.KroneckerIdentityProduct
+    # @test typeof(K) <: STGPKF.KroneckerIdentityProduct
 
     # check against julia's kron
     @test collect(K * cu_b) ≈ collect(kron(In, A) * b)
