@@ -1,6 +1,6 @@
 module STGPKF
 using LinearAlgebra, StaticArrays
-# using Kronecker
+using Kronecker
 import SpecialFunctions
 import Interpolations
 # this module creates a spatiotemporal GP Kalman Filter
@@ -298,7 +298,6 @@ function stgpkf_correct(prob::AbstractSTGPKFProblem,
     H = L * (I(Ng) ⊗ C)
 
     # construct the noise matrix 
-    println("types: Σm: $(typeof(Σm)), K_mm: $(typeof(K_mm)), L: $(typeof(L))")
     V = Symmetric(Σm + K_mm - L * L')
 
     # do the update

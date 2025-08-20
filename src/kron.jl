@@ -1,5 +1,4 @@
 # some small fast utilities for the kronecker product
-using Kronecker
 
 """
     KroneckerIdentityProduct(B, N)
@@ -57,7 +56,7 @@ function kron_I_B_mm!(Y::AbstractMatrix, N::Int, B::AbstractMatrix, X::AbstractM
     # Fuse the N blocks: (qN × K) → (q × (N*K)), multiply, then reshape back
     Xr = reshape(X, q, N*K)
     Yr = reshape(Y, m, N*K)
-    mul!(Yr, B, Xr)           # BLAS/cuBLAS GEMM
+    mul!(Yr, B, Xr)           
     return Y
 end
 
@@ -74,7 +73,7 @@ function kron_I_B_mv!(y::AbstractVector, N::Int, B::AbstractMatrix, x::AbstractV
     @assert length(y) == m * N
     X = reshape(x, q, N)
     Y = reshape(y, m, N)
-    mul!(Y, B, X)             # BLAS/cuBLAS GEMM
+    mul!(Y, B, X)             
     return y
 end
 
@@ -100,132 +99,9 @@ end
 
 
 
-# function Base.vcat(A::Transpose{F, C}, M::AbstractMatrix{F}) where {F, C <: CuArray{F}}
-#     # A is a Transpose, we need to materialize it
-#     return vcat(C(A), M)
-# end
-
-# function KF.qrr(A::AbstractMatrix{F}, K::KroneckerIdentityProduct{F, C}) where {F, C <: CuArray{F}}
-#     # A is a matrix, we need to materialize it
-
-#     println("Im here!")
-#     K_dense = CuArray{F}(undef, size(K))
-#     collect!(K_dense, K)  # materialize the KroneckerIdentityProduct
-#     return KF.qrr(A, K_dense)
-# end
-
 function KF.chol_sqrt(K::KroneckerIdentityProduct)
     # chol_sqrt = cholesky(K).U
     # and cholesky(I ⊗ B).U =  I ⊗ (chol(B).U)
     # println("im here at chol_sqrt 147")
     return KroneckerIdentityProduct(cholesky(K.B).U, K.N)
 end
-
-
-# """
-#     kron_I_A_dense(N, A) -> M
-
-# Materialize M = I(N) ⊗ A as a dense matrix.
-# - A :: m×q (Array or CuArray)
-# - M :: (mN)×(qN) (same array family as A)
-# """
-# function cuda_kron_I_A_dense(N::Integer, A::AbstractMatrix)
-#     m, q = size(A)
-#     M = similar(A, promote_type(eltype(A), eltype(A)), m*N, q*N)
-#     fill!(M, zero(eltype(M)))  # dense, so zero the off-diagonals
-#     @inbounds for n in 0:N-1
-#         r = n*m + 1 : (n+1)*m
-#         c = n*q + 1 : (n+1)*q
-#         @views M[r, c] .= A       # block copy (works on CPU & GPU)
-#     end
-#     return M
-# end
-
-
-
-# function materialize(K::KroneckerIdentityProduct)
-#     # materialize the KroneckerIdentityProduct
-#     return kron(I(K.N), K.B)
-# end
-
-# function LinearAlgebra.mul!(Y::AbstractMatrix, X::AbstractMatrix, K::KroneckerIdentityProduct)
-#     # make the adjoint explicit
-#     # X * K = (K' * X')'
-#     
-#     
-#     return mul!(Y, K, C(X))
-# end
-
-# function LinearAlgebra.mul!(Y::AbstractMatrix, K::KroneckerIdentityProduct, X::Adjoint{T, C}) where {T, C<:AbstractMatrix{T}}
-#     # make the adjoint explicit
-#     return mul!(Y, K, C(X))
-# end
-
-# function Base.:*(K::KroneckerIdentityProduct, v::AbstractVector)
-#     N = K.N
-#     m, q = size(K.B)
-#     y = similar(v, eltype(v), (m * N))
-#     mul!(y, K, v)
-#     return y
-# end
-#     
-# function Base.:*(K::KroneckerIdentityProduct, X::AbstractMatrix)
-#     N = K.N
-#     m, q = size(K.B)
-#     L = size(X, 2)
-#     Y = similar(X, eltype(X), (m * N, L))
-#     mul!(Y, K, X)
-#     return Y
-# end
-# 
-# 
-# # # mul!(C::Matrix{Float32}, A::UpperTriangular{Float32, CuArray{Float32, 2, CUDA.DeviceMemory}}, B::SpatiotemporalGPs.STGPKF.KroneckerIdentityProduct{Float32, Adjoint{Float32, CuArray{Float32, 2, CUDA.DeviceMemory}}})
-# 
-# function Base.:*(M::AbstractMatrix{F}, KT::KroneckerIdentityProduct{F, Adjoint{F, C}}) where {F, C <: AbstractMatrix{F}}
-# 
-#     # KT = (I ⊗ B)' = (I ⊗ B')
-#     # K = I ⊗ B
-# 
-#     # M * KT = M * (I ⊗ B')
-#     #        = ((I ⊗ B')' * M')'
-#     #        = (KT' * M')'
-#     #        = (K2 * M2)'
-# 
-#     # force the transpose to happen
-#     K2 = KroneckerIdentityProduct(C(KT.B'), KT.N)
-# 
-#     S = K2 * M'
-#     return S'
-# 
-# end
-# 
-# function Base.:*(M::UpperTriangular{F, C}, K::KroneckerIdentityProduct) where {F, C <: AbstractMatrix{F}}
-#     return C(M) * K
-# end 
-# 
-# function Base.:*(M::LowerTriangular{F, C}, K::KroneckerIdentityProduct) where {F, C <: AbstractMatrix{F}}
-#     return C(M) * K
-# end 
-
-# function Base.:*(K::KroneckerIdentityProduct{F, C}, M::LinearAlgebra.AbstractTriangular{F}) where {F, C <: AbstractMatrix{F}}
-
-#     # allocate the output
-#     N = K.N
-#     m, q = size(K.B)
-#     L = size(M, 2)
-#     @assert m == q # assuming B is square
-#     @assert m * N == L # assuming output is a square matrix
-#     @assert size(M, 1) == L 
-
-#     Y = similar(M) # , F, (m * N, L))
-
-#     # call our specialized function
-#     return kron_I_B_mv!(Y, N, K.B, M) 
-# end
-
-
-# function Base.transpose(K::KroneckerIdentityProduct)
-#     # transpose of (I(N) ⊗ B) is (I(N) ⊗ B')
-#     return KroneckerIdentityProduct(transpose(K.B), K.N)
-# end
-

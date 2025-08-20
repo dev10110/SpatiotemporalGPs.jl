@@ -6,12 +6,7 @@ using StaticArrays
 using CUDA
 using SpatiotemporalGPs
 
-println("CUDA Functional: $(CUDA.functional())")
-
-function rand_posdef(N)
-    A = randn(N, N)
-    return Symmetric(A' * A + I)
-end
+@assert CUDA.functional() "CUDA is not functional on this system. Skipping CUDA kron tests."
 
 function cuda_create_problem(kt_order, xs, ys, F)
 

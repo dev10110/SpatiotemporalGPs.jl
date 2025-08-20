@@ -110,11 +110,6 @@ function predict(s::S, A, W) where {S <: KFState}
     N = length(s.μ)
     Γw = chol_sqrt(W)
 
-    # re-written to allow for mu_new to have same type as s.μ
-    # this is useful for type stability
-    # and allows for the GPU to be used
-    # μ_new = similar(s.μ)
-    # mul!(μ_new, A, s.μ)
     μ_new = A * s.μ
     F_new = qrr(s.U * A', Γw)
 

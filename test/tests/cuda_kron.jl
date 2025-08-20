@@ -7,8 +7,7 @@ using CUDA
 using SpatiotemporalGPs
 using Kronecker
 
-println("CUDA Functional: $(CUDA.functional())")
-
+@assert CUDA.functional() "CUDA is not functional on this system. Skipping CUDA kron tests."
 
 @testset "Kron test" begin
 
