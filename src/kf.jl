@@ -243,13 +243,17 @@ function diag(C::Cholesky{T}, k::Int = 0) where {T}
     return z
 end
 
-"""
-    M = cholesky(M::Cholesky)
+if !hasmethod(LinearAlgebra.cholesky, Tuple{Cholesky})
+    """
+        M = cholesky(M::Cholesky)
 
-This is a dummy method to allow for the `cholesky` method to be called on a cholesky decomposition.
-"""
-function LinearAlgebra.cholesky(A::Cholesky)
-    return A
+    This is a dummy method to allow for the `cholesky` method to be called on a cholesky decomposition.
+
+    Adding a check to support older julia versions. LinearAlgebra in Julia 1.12 supports cholesky.
+    """
+    LinearAlgebra.cholesky(A::Cholesky) = A
 end
+
+
 
 end
