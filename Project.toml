@@ -1,7 +1,7 @@
 name = "SpatiotemporalGPs"
 uuid = "73b3b457-46a4-4dae-aece-b1ff83e37843"
 authors = ["Devansh Ramgopal Agrawal <devansh@umich.edu> and contributors"]
-version = "1.0.1-DEV"
+version = "1.1.0-DEV"
 
 [deps]
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
@@ -12,11 +12,23 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
+[weakdeps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+
+
+[extensions]
+CudaExt = ["CUDA", "Adapt"]
+
 [compat]
+Adapt = "4.3.0"
+CUDA = "5.8.3"
 julia = "1.9.4"
 
 [extras]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Test", "CUDA", "Adapt"]
